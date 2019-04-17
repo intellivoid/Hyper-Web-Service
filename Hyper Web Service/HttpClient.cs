@@ -151,34 +151,21 @@ namespace Intellivoid.HyperWS
                 try
                 {
                     ReadBuffer.EndRead(_stream, asyncResult);
-                } catch
+                }
+                catch
                 {
-
-                    /// <summary>
-                    /// SLOWLORIS ATTACK PREVENTION
-                    /// 
-                    /// This behavior is quite similar to a SlowHTTP-type attack, meaning the client will open a 
-                    /// connection, and won't let the server end it due to regulations of the HTTP protocol.
-                    /// 
-                    /// Through this, we'll dispose the current Http client by terminating the current HTTP connection
-                    /// forcefully.
-                    /// 
-                    /// This catch check may be safely ignored as ReadBuffer is now directly processed and it's operation is returned to the client.
-                    /// 
-                    /// </summary>
-
+                    // This happens when the bugger stream remains null, this can either
+                    // be a slow-loris attack or malformed request.
                 }
                 
 
                 if (ReadBuffer.DataAvailable)
                 {
                     ProcessReadBuffer();
-                    return;
                 }
                 else
                 {
                     Dispose();
-                    return;
                 }
                     
             }
