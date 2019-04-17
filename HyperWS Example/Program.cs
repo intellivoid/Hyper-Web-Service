@@ -1,19 +1,15 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace HyperWS_Example
 {
-    class Program
+    internal static class Program
     {
-        static void Main(string[] args)
+        private static void Main()
         {
-            var Server = new Intellivoid.HyperWS.HttpServer
+            var server = new Intellivoid.HyperWS.HttpServer
             {
                 // Start a a random port on localhost only
                 EndPoint = new IPEndPoint(IPAddress.Loopback, 0)
@@ -23,24 +19,24 @@ namespace HyperWS_Example
             //Intellivoid.HyperWS.Logging.VerboseLogging = true;
 
             // Run at a different port on localhost only
-            //Server.EndPoint = new IPEndPoint(IPAddress.Loopback, 8080);
+            //server.EndPoint = new IPEndPoint(IPAddress.Loopback, 8080);
 
             // Run a different/random port listening for any request instead of just localhost
-            //Server.EndPoint = new IPEndPoint(IPAddress.Any, 8080); // Port 8080
-            //Server.EndPoint = new IPEndPoint(IPAddress.Any, 0); // Random Port
+            //server.EndPoint = new IPEndPoint(IPAddress.Any, 8080); // Port 8080
+            //server.EndPoint = new IPEndPoint(IPAddress.Any, 0); // Random Port
 
             // Set the Event Listener
-            Server.RequestReceived += (s, e) => { RequestReceived(s, e); };
+            server.RequestReceived += RequestReceived;
 
             // Start the server
-            Server.Start();
+            server.Start();
 
-            Process.Start($"http://{Server.EndPoint}");
+            Process.Start($"http://{server.EndPoint}");
 
-            Console.WriteLine("Press Return to stop the server ...");
+            Console.WriteLine(ProgramResources.StopServerMessage);
 
             Console.ReadLine();
-            Server.Stop();
+            server.Stop();
             Environment.Exit(0);
         }
 
@@ -49,11 +45,11 @@ namespace HyperWS_Example
         /// </summary>
         /// <param name="httpRequest"></param>
         /// <param name="content"></param>
-        /// <param name="status_code"></param>
-        public static void SendResponse(Intellivoid.HyperWS.HttpRequestEventArgs httpRequest, string content, int status_code)
+        /// <param name="statusCode"></param>
+        private static void SendResponse(Intellivoid.HyperWS.HttpRequestEventArgs httpRequest, string content, int statusCode)
         {
             httpRequest.Response.Headers.Add("X-Powered-By", "HyperWS");
-            httpRequest.Response.StatusCode = status_code;
+            httpRequest.Response.StatusCode = statusCode;
             using (var writer = new StreamWriter(httpRequest.Response.OutputStream))
             {
                 writer.Write(content);
@@ -65,13 +61,13 @@ namespace HyperWS_Example
         /// </summary>
         /// <param name="httpRequest"></param>
         /// <param name="filepath"></param>
-        public static void SendFile(Intellivoid.HyperWS.HttpRequestEventArgs httpRequest, string filepath)
+        private static void SendFile(Intellivoid.HyperWS.HttpRequestEventArgs httpRequest, string filepath)
         {
             httpRequest.Response.Headers.Add("X-Powered-By", "HyperWS");
             httpRequest.Response.StatusCode = 200;
-            using (var Stream = File.OpenRead(filepath))
+            using (var stream = File.OpenRead(filepath))
             {
-                Stream.CopyTo(httpRequest.Response.OutputStream);
+                stream.CopyTo(httpRequest.Response.OutputStream);
             }
         }
 
@@ -80,11 +76,11 @@ namespace HyperWS_Example
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="httpRequest"></param>
-        public static void RequestReceived(object sender, Intellivoid.HyperWS.HttpRequestEventArgs httpRequest)
+        private static void RequestReceived(object sender, Intellivoid.HyperWS.HttpRequestEventArgs httpRequest)
         {
-            var RequestPath = httpRequest.Request.Path.Split('/');
+            var requestPath = httpRequest.Request.Path.Split('/');
             
-            switch(RequestPath[1])
+            switch(requestPath[1])
             {
                 case "":
                     SendResponse(httpRequest, "<h1>HyperWS</h1> <p>Welcome to HyperWS Server</p>", 200);
