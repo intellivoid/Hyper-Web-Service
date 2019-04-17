@@ -10,40 +10,113 @@ using System.Text.RegularExpressions;
 
 namespace Intellivoid.HyperWS
 {
+    /// <inheritdoc />
+    /// <summary>
+    /// HttpClient Internal Class
+    /// </summary>
     internal class HttpClient : IDisposable
     {
 
+        /// <summary>
+        /// Prolog Regex Pattern
+        /// </summary>
         private static readonly Regex PrologRegex = new Regex("^([A-Z]+) ([^ ]+) (HTTP/[^ ]+)$", RegexOptions.Compiled);
 
+        /// <summary>
+        /// Indicates if this object was disposed or not
+        /// </summary>
         private bool _disposed;
+        
+        /// <summary>
+        /// The current write buffer for the client
+        /// </summary>
         private readonly byte[] _writeBuffer;
+        
+        /// <summary>
+        /// The incoming/outgoing network stream for this client
+        /// </summary>
         private NetworkStream _stream;
+        
+        /// <summary>
+        /// The current state of the client
+        /// </summary>
         private ClientState _state;
+        
+        /// <summary>
+        /// The current write stream
+        /// </summary>
         private MemoryStream _writeStream;
+        
+        /// <summary>
+        /// HTTP Request Parser
+        /// </summary>
         private HttpRequestParser _parser;
+        
+        /// <summary>
+        /// HTTP Context
+        /// </summary>
         private HttpContext _context;
+        
+        /// <summary>
+        /// If there is an ongoing error with the client
+        /// </summary>
         private bool _errored;
 
+        /// <summary>
+        /// The server that this client is connected to
+        /// </summary>
         public HttpServer Server { get; private set; }
 
+        /// <summary>
+        /// The TCP Client used the communicate with the client
+        /// </summary>
         public TcpClient TcpClient { get; private set; }
 
+        /// <summary>
+        /// Request Method variable
+        /// </summary>
         public string Method { get; private set; }
 
+        /// <summary>
+        /// Protocol
+        /// </summary>
         public string Protocol { get; private set; }
 
+        /// <summary>
+        /// Request
+        /// </summary>
         public string Request { get; private set; }
 
+        /// <summary>
+        /// Headers
+        /// </summary>
         public Dictionary<string, string> Headers { get; private set; }
 
+        /// <summary>
+        /// Post Parameters
+        /// </summary>
         public NameValueCollection PostParameters { get; set; }
 
+        /// <summary>
+        /// Multi Part Items
+        /// </summary>
         public List<HttpMultiPartItem> MultiPartItems { get; set; }
 
+        /// <summary>
+        /// Read Buffer
+        /// </summary>
         public HttpReadBuffer ReadBuffer { get; private set; }
 
+        /// <summary>
+        /// Input Stream
+        /// </summary>
         public Stream InputStream { get; set; }
 
+        /// <summary>
+        /// Public Constructor
+        /// </summary>
+        /// <param name="server"></param>
+        /// <param name="client"></param>
         public HttpClient(HttpServer server, TcpClient client)
         {
             Server = server ?? throw new ArgumentNullException("server");
@@ -55,6 +128,9 @@ namespace Intellivoid.HyperWS
             _stream = client.GetStream();
         }
 
+        /// <summary>
+        /// Resets the client
+        /// </summary>
         private void Reset()
         {
             _state = ClientState.ReadingProlog;
@@ -98,6 +174,9 @@ namespace Intellivoid.HyperWS
             }
         }
 
+        /// <summary>
+        /// Starts the reading the request
+        /// </summary>
         public void BeginRequest()
         {
             Reset();
@@ -105,6 +184,9 @@ namespace Intellivoid.HyperWS
             BeginRead();
         }
 
+        /// <summary>
+        /// Begins reading the incoming stream
+        /// </summary>
         private void BeginRead()
         {
             if (_disposed)
@@ -125,6 +207,10 @@ namespace Intellivoid.HyperWS
             }
         }
 
+        /// <summary>
+        /// Reads as a callback function
+        /// </summary>
+        /// <param name="asyncResult"></param>
         private void ReadCallback(IAsyncResult asyncResult)
         {
             if (_disposed)
@@ -183,6 +269,10 @@ namespace Intellivoid.HyperWS
             }
         }
 
+        /// <summary>
+        /// Processes the read buffer
+        /// </summary>
+        /// <exception cref="InvalidOperationException"></exception>
         private void ProcessReadBuffer()
         {
             while (_writeStream == null && ReadBuffer.DataAvailable)
@@ -210,6 +300,10 @@ namespace Intellivoid.HyperWS
                 BeginRead();
         }
 
+        /// <summary>
+        /// Processes the Prolog
+        /// </summary>
+        /// <exception cref="ProtocolException"></exception>
         private void ProcessProlog()
         {
             string line = ReadBuffer.ReadLine();
@@ -220,7 +314,7 @@ namespace Intellivoid.HyperWS
             var match = PrologRegex.Match(line);
 
             if (!match.Success)
-                throw new ProtocolException(String.Format("Could not parse prolog '{0}'", line));
+                throw new ProtocolException($"Could not parse prolog '{line}'");
 
             Method = match.Groups[1].Value;
             Request = match.Groups[2].Value;
@@ -233,6 +327,10 @@ namespace Intellivoid.HyperWS
             ProcessHeaders();
         }
 
+        /// <summary>
+        /// Processes the headers
+        /// </summary>
+        /// <exception cref="ProtocolException"></exception>
         private void ProcessHeaders()
         {
             string line;
@@ -256,7 +354,7 @@ namespace Intellivoid.HyperWS
                     return;
                 }
 
-                string[] parts = line.Split(new[] { ':' }, 2);
+                var parts = line.Split(new[] { ':' }, 2);
 
                 if (parts.Length != 2)
                     throw new ProtocolException("Received header without colon");
@@ -265,6 +363,9 @@ namespace Intellivoid.HyperWS
             }
         }
 
+        /// <summary>
+        /// Processes content
+        /// </summary>
         private void ProcessContent()
         {
             if (_parser != null)
@@ -284,101 +385,104 @@ namespace Intellivoid.HyperWS
             ExecuteRequest();
         }
 
+        /// <summary>
+        /// Processes a expected header
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="ProtocolException"></exception>
         private bool ProcessExpectHeader()
         {
-            // Process the Expect: 100-continue header.
+            if (!Headers.TryGetValue("Expect", out string expectHeader)) return false;
+            // Remove the expect header for the next run.
 
+            Headers.Remove("Expect");
 
-            if (Headers.TryGetValue("Expect", out string expectHeader))
-            {
-                // Remove the expect header for the next run.
+            var pos = expectHeader.IndexOf(';');
 
-                Headers.Remove("Expect");
+            if (pos != -1)
+                expectHeader = expectHeader.Substring(0, pos).Trim();
 
-                int pos = expectHeader.IndexOf(';');
+            if (!string.Equals("100-continue", expectHeader, StringComparison.OrdinalIgnoreCase))
+                throw new ProtocolException($"Could not process Expect header '{expectHeader}'");
 
-                if (pos != -1)
-                    expectHeader = expectHeader.Substring(0, pos).Trim();
+            SendContinueResponse();
+            return true;
 
-                if (!String.Equals("100-continue", expectHeader, StringComparison.OrdinalIgnoreCase))
-                    throw new ProtocolException(String.Format("Could not process Expect header '{0}'", expectHeader));
-
-                SendContinueResponse();
-                return true;
-            }
-
-            return false;
         }
-
+        
+        /// <summary>
+        /// Processes the content length and starts reading the content
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="ProtocolException"></exception>
         private bool ProcessContentLengthHeader()
         {
             // Read the content.
+            if (!Headers.TryGetValue("Content-Length", out var contentLengthHeader)) return false;
+            
+            if (!int.TryParse(contentLengthHeader, out var contentLength))
+                throw new ProtocolException($"Could not parse Content-Length header '{contentLengthHeader}'");
 
+            string contentType = null;
+            string contentTypeExtra = null;
 
-            if (Headers.TryGetValue("Content-Length", out string contentLengthHeader))
+            if (Headers.TryGetValue("Content-Type", out var contentTypeHeader))
             {
+                var parts = contentTypeHeader.Split(new[] { ';' }, 2);
 
-                if (!int.TryParse(contentLengthHeader, out int contentLength))
-                    throw new ProtocolException(String.Format("Could not parse Content-Length header '{0}'", contentLengthHeader));
-
-                string contentType = null;
-                string contentTypeExtra = null;
-
-                if (Headers.TryGetValue("Content-Type", out string contentTypeHeader))
-                {
-                    string[] parts = contentTypeHeader.Split(new[] { ';' }, 2);
-
-                    contentType = parts[0].Trim().ToLowerInvariant();
-                    contentTypeExtra = parts.Length == 2 ? parts[1].Trim() : null;
-                }
-
-                if (_parser != null)
-                {
-                    _parser.Dispose();
-                    _parser = null;
-                }
-
-                switch (contentType)
-                {
-                    case "application/x-www-form-urlencoded":
-                        _parser = new HttpUrlEncodedRequestParser(this, contentLength);
-                        break;
-
-                    case "multipart/form-data":
-                        string boundary = null;
-
-                        if (contentTypeExtra != null)
-                        {
-                            string[] parts = contentTypeExtra.Split(new[] { '=' }, 2);
-
-                            if (
-                                parts.Length == 2 &&
-                                String.Equals(parts[0], "boundary", StringComparison.OrdinalIgnoreCase)
-                            )
-                                boundary = parts[1];
-                        }
-
-                        if (boundary == null)
-                            throw new ProtocolException("Expected boundary with multipart content type");
-
-                        _parser = new HttpMultiPartRequestParser(this, contentLength, boundary);
-                        break;
-
-                    default:
-                        _parser = new HttpUnknownRequestParser(this, contentLength);
-                        break;
-                }
-
-                // We've made a parser available. Recurs back to start processing
-                // with the parser.
-
-                ProcessContent();
-                return true;
+                contentType = parts[0].Trim().ToLowerInvariant();
+                contentTypeExtra = parts.Length == 2 ? parts[1].Trim() : null;
             }
 
-            return false;
+            if (_parser != null)
+            {
+                _parser.Dispose();
+                _parser = null;
+            }
+
+            switch (contentType)
+            {
+                case "application/x-www-form-urlencoded":
+                    _parser = new HttpUrlEncodedRequestParser(this, contentLength);
+                    break;
+
+                case "multipart/form-data":
+                    string boundary = null;
+
+                    if (contentTypeExtra != null)
+                    {
+                        var parts = contentTypeExtra.Split(new[] { '=' }, 2);
+
+                        if (parts.Length == 2 && string.Equals(parts[0], "boundary", StringComparison.OrdinalIgnoreCase))
+                        {
+                            boundary = parts[1];
+                        }
+                    }
+
+                    if (boundary == null)
+                    {
+                        throw new ProtocolException("Expected boundary with multipart content type");
+                    }
+
+                    _parser = new HttpMultiPartRequestParser(this, contentLength, boundary);
+                    break;
+
+                default:
+                    _parser = new HttpUnknownRequestParser(this, contentLength);
+                    break;
+            }
+
+            // We've made a parser available. Recurs back to start processing
+            // with the parser.
+
+            ProcessContent();
+            return true;
+
         }
 
+        /// <summary>
+        /// Sends a continue request to expect more data
+        /// </summary>
         private void SendContinueResponse()
         {
             var sb = new StringBuilder();
@@ -392,8 +496,7 @@ namespace Intellivoid.HyperWS
 
             var bytes = Encoding.ASCII.GetBytes(sb.ToString());
 
-            if (_writeStream != null)
-                _writeStream.Dispose();
+            _writeStream?.Dispose();
 
             _writeStream = new MemoryStream();
             _writeStream.Write(bytes, 0, bytes.Length);
@@ -402,13 +505,16 @@ namespace Intellivoid.HyperWS
             BeginWrite();
         }
 
+        /// <summary>
+        /// Begins writing to the Write Stream
+        /// </summary>
         private void BeginWrite()
         {
             try
             {
                 // Copy the next part from the write stream.
 
-                int read = _writeStream.Read(_writeBuffer, 0, _writeBuffer.Length);
+                var read = _writeStream.Read(_writeBuffer, 0, _writeBuffer.Length);
 
                 Server.TimeoutManager.WriteQueue.Add(
                     _stream.BeginWrite(_writeBuffer, 0, read, WriteCallback, null),
@@ -430,6 +536,10 @@ namespace Intellivoid.HyperWS
             }
         }
 
+        /// <summary>
+        /// Writes to the Write Stream, but executes the callback function
+        /// </summary>
+        /// <param name="asyncResult"></param>
         private void WriteCallback(IAsyncResult asyncResult)
         {
             if (_disposed)
@@ -493,6 +603,9 @@ namespace Intellivoid.HyperWS
             }
         }
 
+        /// <summary>
+        /// Executes the request
+        /// </summary>
         public void ExecuteRequest()
         {
             _context = new HttpContext(this);
@@ -504,12 +617,14 @@ namespace Intellivoid.HyperWS
             WriteResponseHeaders();
         }
 
+        /// <summary>
+        /// Writes the response headers
+        /// </summary>
         private void WriteResponseHeaders()
         {
             var headers = BuildResponseHeaders();
 
-            if (_writeStream != null)
-                _writeStream.Dispose();
+            _writeStream?.Dispose();
 
             _writeStream = new MemoryStream(headers);
 
@@ -518,18 +633,21 @@ namespace Intellivoid.HyperWS
             BeginWrite();
         }
 
+        /// <summary>
+        /// Builds Response Headers
+        /// </summary>
+        /// <returns></returns>
         private byte[] BuildResponseHeaders()
         {
             var response = _context.Response;
             var sb = new StringBuilder();
 
             // Write the prolog.
-
             sb.Append(Protocol);
             sb.Append(' ');
             sb.Append(response.StatusCode);
 
-            if (!String.IsNullOrEmpty(response.StatusDescription))
+            if (!string.IsNullOrEmpty(response.StatusDescription))
             {
                 sb.Append(' ');
                 sb.Append(response.StatusDescription);
@@ -538,15 +656,14 @@ namespace Intellivoid.HyperWS
             sb.Append("\r\n");
 
             // Write all headers provided by Response.
-
-            if (!String.IsNullOrEmpty(response.CacheControl))
+            if (!string.IsNullOrEmpty(response.CacheControl))
                 WriteHeader(sb, "Cache-Control", response.CacheControl);
 
-            if (!String.IsNullOrEmpty(response.ContentType))
+            if (!string.IsNullOrEmpty(response.ContentType))
             {
-                string contentType = response.ContentType;
+                var contentType = response.ContentType;
 
-                if (!String.IsNullOrEmpty(response.CharSet))
+                if (!string.IsNullOrEmpty(response.CharSet))
                     contentType += "; charset=" + response.CharSet;
 
                 WriteHeader(sb, "Content-Type", contentType);
@@ -554,21 +671,19 @@ namespace Intellivoid.HyperWS
 
             WriteHeader(sb, "Expires", response.ExpiresAbsolute.ToString("R"));
 
-            if (!String.IsNullOrEmpty(response.RedirectLocation))
+            if (!string.IsNullOrEmpty(response.RedirectLocation))
                 WriteHeader(sb, "Location", response.RedirectLocation);
 
             // Write the remainder of the headers.
-
-            foreach (string key in response.Headers.AllKeys)
+            foreach (var key in response.Headers.AllKeys)
             {
                 WriteHeader(sb, key, response.Headers[key]);
             }
 
             // Write the content length (we override custom headers for this).
-
             WriteHeader(sb, "Content-Length", response.OutputStream.BaseStream.Length.ToString(CultureInfo.InvariantCulture));
 
-            for (int i = 0; i < response.Cookies.Count; i++)
+            for (var i = 0; i < response.Cookies.Count; i++)
             {
                 WriteHeader(sb, "Set-Cookie", response.Cookies[i].GetHeaderValue());
             }
@@ -578,7 +693,13 @@ namespace Intellivoid.HyperWS
             return response.HeadersEncoding.GetBytes(sb.ToString());
         }
 
-        private void WriteHeader(StringBuilder sb, string key, string value)
+        /// <summary>
+        /// Writes to the given header
+        /// </summary>
+        /// <param name="sb"></param>
+        /// <param name="key"></param>
+        /// <param name="value"></param>
+        private static void WriteHeader(StringBuilder sb, string key, string value)
         {
             sb.Append(key);
             sb.Append(": ");
@@ -586,10 +707,12 @@ namespace Intellivoid.HyperWS
             sb.Append("\r\n");
         }
 
+        /// <summary>
+        /// Writes Response Content
+        /// </summary>
         private void WriteResponseContent()
         {
-            if (_writeStream != null)
-                _writeStream.Dispose();
+            _writeStream?.Dispose();
 
             _writeStream = _context.Response.OutputStream.BaseStream;
             _writeStream.Position = 0;
@@ -599,6 +722,9 @@ namespace Intellivoid.HyperWS
             BeginWrite();
         }
 
+        /// <summary>
+        /// Process execution when the request has been completed
+        /// </summary>
         private void ProcessRequestCompleted()
         {
 
@@ -615,25 +741,30 @@ namespace Intellivoid.HyperWS
                 Dispose();
         }
 
+        /// <summary>
+        /// Closes the request
+        /// </summary>
         public void RequestClose()
         {
-            if (_state == ClientState.ReadingProlog)
-            {
-                var stream = _stream;
+            if (_state != ClientState.ReadingProlog) return;
+            var stream = _stream;
 
-                if (stream != null)
-                    stream.Dispose();
-            }
+            stream?.Dispose();
         }
 
+        /// <summary>
+        /// Forces the close
+        /// </summary>
         public void ForceClose()
         {
             var stream = _stream;
 
-            if (stream != null)
-                stream.Dispose();
+            stream?.Dispose();
         }
 
+        /// <summary>
+        /// Unsets the parser
+        /// </summary>
         public void UnsetParser()
         {
             Debug.Assert(_parser != null);
@@ -641,6 +772,10 @@ namespace Intellivoid.HyperWS
             _parser = null;
         }
 
+        /// <summary>
+        /// Processes the given exception
+        /// </summary>
+        /// <param name="exception"></param>
         private void ProcessException(Exception exception)
         {
             if (_disposed)
@@ -702,32 +837,37 @@ namespace Intellivoid.HyperWS
             }
         }
 
+        /// <inheritdoc />
+        /// <summary>
+        /// Disposes this HttpClient Object
+        /// </summary>
         public void Dispose()
         {
-            if (!_disposed)
+            if (_disposed) return;
+            Server.UnregisterClient(this);
+
+            _state = ClientState.Closed;
+
+            if (_stream != null)
             {
-                Server.UnregisterClient(this);
-
-                _state = ClientState.Closed;
-
-                if (_stream != null)
-                {
-                    _stream.Dispose();
-                    _stream = null;
-                }
-
-                if (TcpClient != null)
-                {
-                    TcpClient.Close();
-                    TcpClient = null;
-                }
-
-                Reset();
-
-                _disposed = true;
+                _stream.Dispose();
+                _stream = null;
             }
+
+            if (TcpClient != null)
+            {
+                TcpClient.Close();
+                TcpClient = null;
+            }
+
+            Reset();
+
+            _disposed = true;
         }
 
+        /// <summary>
+        /// The current state of the client
+        /// </summary>
         private enum ClientState
         {
             ReadingProlog,
