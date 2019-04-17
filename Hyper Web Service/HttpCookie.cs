@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Globalization;
 using System.Text;
@@ -11,48 +10,39 @@ namespace Intellivoid.HyperWS
         private const string DateFormat = "ddd, dd-MMM-yyyy HH':'mm':'ss 'GMT'";
         private static readonly CultureInfo DateCulture = new CultureInfo("en-US");
 
-        public HttpCookie(string name)
-            : this(name, null)
+        public HttpCookie(string name, string value = null)
         {
-        }
-
-        public HttpCookie(string name, string value)
-        {
-            if (name == null)
-                throw new ArgumentNullException("name");
-
-            Name = name;
+            Name = name ?? throw new ArgumentNullException(nameof(name));
             Expires = DateTime.MinValue;
             Path = "/";
 
             Values = new NameValueCollection();
 
-            if (value != null)
+            if (value == null) return;
+            
+            if (value.Contains("&") || value.Contains("="))
             {
-                if (value.Contains("&") || value.Contains("="))
-                {
-                    string[] parts = value.Split('&');
+                var parts = value.Split('&');
 
-                    foreach (string part in parts)
+                foreach (var part in parts)
+                {
+                    name = null;
+                    value = null;
+
+                    if (part.Length > 0)
                     {
-                        name = null;
-                        value = null;
+                        var partParts = part.Split(new[] { '=' }, 2);
 
-                        if (part.Length > 0)
-                        {
-                            string[] partParts = part.Split(new[] { '=' }, 2);
-
-                            name = partParts[0];
-                            value = partParts.Length == 1 ? null : partParts[1];
-                        }
-
-                        Values.Add(name, value);
+                        name = partParts[0];
+                        value = partParts.Length == 1 ? null : partParts[1];
                     }
+
+                    Values.Add(name, value);
                 }
-                else
-                {
-                    Value = value;
-                }
+            }
+            else
+            {
+                Value = value;
             }
         }
 
