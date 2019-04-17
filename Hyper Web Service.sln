@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28307.438
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hyper Web Service", "Hyper Web Service\Hyper Web Service.csproj", "{F771CF9F-4F90-4B39-B305-CC4D9EC1DA14}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Intellivoid.HyperWS", "Hyper Web Service\Intellivoid.HyperWS.csproj", "{F771CF9F-4F90-4B39-B305-CC4D9EC1DA14}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HyperWS Example", "HyperWS Example\HyperWS Example.csproj", "{ABDF70E1-9ECE-4878-B15F-CD2252E5AC38}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{F771CF9F-4F90-4B39-B305-CC4D9EC1DA14}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F771CF9F-4F90-4B39-B305-CC4D9EC1DA14}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F771CF9F-4F90-4B39-B305-CC4D9EC1DA14}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ABDF70E1-9ECE-4878-B15F-CD2252E5AC38}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ABDF70E1-9ECE-4878-B15F-CD2252E5AC38}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ABDF70E1-9ECE-4878-B15F-CD2252E5AC38}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ABDF70E1-9ECE-4878-B15F-CD2252E5AC38}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

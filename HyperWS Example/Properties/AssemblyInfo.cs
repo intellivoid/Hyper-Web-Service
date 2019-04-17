@@ -1,16 +1,15 @@
-﻿using System.Resources;
-using System.Reflection;
+﻿using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Hyper Web Service")]
-[assembly: AssemblyDescription("Provides a local/remote HTTP Web Service")]
+[assembly: AssemblyTitle("HyperWS Example")]
+[assembly: AssemblyDescription("A Basic Example of how to use HyperWS")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Intellivoid")]
-[assembly: AssemblyProduct("Hyper Web Service")]
+[assembly: AssemblyProduct("Intellivoid.HyperWS")]
 [assembly: AssemblyCopyright("Copyright © Intellivoid 2019")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -21,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("f771cf9f-4f90-4b39-b305-cc4d9ec1da14")]
+[assembly: Guid("abdf70e1-9ece-4878-b15f-cd2252e5ac38")]
 
 // Version information for an assembly consists of the following four values:
 //
@@ -35,5 +34,3 @@ using System.Runtime.InteropServices;
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
-[assembly: NeutralResourcesLanguage("en")]
-
