@@ -678,14 +678,14 @@ namespace Intellivoid.HyperWS
 
                 if (!handled && _context.Response.OutputStream.CanWrite)
                 {
-                    string resourceName = GetType().Namespace + ".Resources.InternalServerError.html";
+                    var resourceName = GetType().Namespace + ".Resources.InternalServerError.html";
 
                     using (var stream = GetType().Assembly.GetManifestResourceStream(resourceName))
                     {
-                        byte[] buffer = new byte[4096];
+                        var buffer = new byte[4096];
                         int read;
 
-                        while ((read = stream.Read(buffer, 0, buffer.Length)) != 0)
+                        while (stream != null && (read = stream.Read(buffer, 0, buffer.Length)) != 0)
                         {
                             _context.Response.OutputStream.Write(buffer, 0, read);
                         }
