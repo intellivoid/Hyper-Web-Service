@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Intellivoid.HyperWS
+﻿namespace Intellivoid.HyperWS
 {
+    
     public class HttpContext
     {
         internal HttpContext(HttpClient client)
